@@ -1,6 +1,8 @@
 """A Markov chain generator that can tweet random messages."""
 
+import os
 import sys
+import discord
 from random import choice
 
 
@@ -34,16 +36,17 @@ def make_chains(text_string):
     return chains
 
 
-def make_text(chains):
+def make_text(chains, char_limit=None):
     """Take dictionary of Markov chains; return random text."""
 
     keys = list(chains.keys())
     key = choice(keys)
-
     words = [key[0], key[1]]
     while key in chains:
         # Keep looping until we have a key that isn't in the chains
         # (which would mean it was the end of our original text).
+        if char_limit and len(' '.join(words)) > char_limit:
+            break
 
         # Note that for long texts (like a full book), this might mean
         # it would run for a very long time.
@@ -64,3 +67,21 @@ text = open_and_read_file(filenames)
 
 # Get a Markov chain
 chains = make_chains(text)
+
+client = discord.Client()
+
+
+@client.event
+async def on_ready():
+    print(f'Successfully connected! Logged in as {client.user}.')
+
+
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+
+    await message.channel.send(make_text(chains))
+
+
+client.run(os.environ['DISCORD_TOKEN'])
